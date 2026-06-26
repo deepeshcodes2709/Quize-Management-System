@@ -6,10 +6,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
 
@@ -21,15 +18,28 @@ import quizmanagementsystem.model.User;
 import quizmanagementsystem.util.DbUtil;
 
 public class QuizDaoimpl {
-	Connection con;
-	Scanner sc = new Scanner(System.in);
-
+	private Connection con;
 	public QuizDaoimpl() throws Exception {
 		con = DbUtil.getConnection();
 
 	}
 
 	public void create_quiz(String title, String path) throws Exception {
+		
+	    if(title.trim().isEmpty()) {
+	        throw new Exception("Quiz Title Cannot Be Empty");
+	    }
+
+	    if(path.trim().isEmpty()) {
+	        throw new Exception("File Path Cannot Be Empty");
+	    }
+	    
+	    // File Format Validation
+	    if(!(path.toLowerCase().endsWith(".csv")
+	    	      || path.toLowerCase().endsWith(".txt"))) {
+	    	    throw new Exception("Only CSV or TXT File Allowed");
+	    	}
+	    
 		String Query = "Insert into  quizzes(title ) values(?)";
 
 		PreparedStatement stmt = con.prepareStatement(Query, PreparedStatement.RETURN_GENERATED_KEYS);
@@ -43,7 +53,6 @@ public class QuizDaoimpl {
 		if (rs.next()) {
 			quizId = rs.getInt(1);
 		}
-//		System.out.println("generated key" + quizId);
 
 		BufferedReader br = new BufferedReader(new FileReader(path));
 
@@ -120,64 +129,20 @@ public class QuizDaoimpl {
 		
 		return count;
 		
+	}	
+	
+	public ResultSet getResults() throws Exception {
+
+	    String sql = "select * from attempt";
+
+	    PreparedStatement stmt =
+	            con.prepareStatement(sql);
+
+	    return stmt.executeQuery();
 	}
 	
-	public void viewResults() throws Exception{
-		String sql = "select * from attempt";
-		
-		PreparedStatement stmt = con.prepareStatement(sql);
-		
-		ResultSet rs = stmt.executeQuery();
-		
-		System.out.println("====== RESULTS ======");
-		
-		while(rs.next()) {
-			System.out.println("Student Id: " + rs.getInt("student_Id"));
-			
-			System.out.println("Quiz Id: " + rs.getInt("quiz_id"));
-			
-			System.out.println(" Score : " + rs.getInt("score"));
-			
-			System.out.println("------------------------");
-		}
-	}
 		public void attemptQuiz(int student_id, int quiz_id) throws Exception {
 			int score=0;
-			String sql ="select * from questions where quize_id = ? ";
-					
-
-			PreparedStatement stmt =
-					con.prepareStatement(sql);
-//			stmt.setInt(1, student_id);
-			stmt.setInt(1, quiz_id);
-			
-			ResultSet rs= stmt.executeQuery();
-			
-			while(rs.next()) {
-				String que = rs.getString("question_text");
-				if(que==null) {
-					break;
-				}
-				
-				System.out.println(que);
-				System.out.println(rs.getString("option_a"));
-				System.out.println(rs.getString("option_b"));
-				System.out.println(rs.getString("option_c"));
-				System.out.println(rs.getString("option_d"));
-				
-				System.out.println("enter your answer: ");
-				String userAns = sc.next().trim().toUpperCase();
-				String  correct_opt = rs.getString("correct_answer").trim();
-				if(correct_opt.contains(":")) {
-					correct_opt= correct_opt.split(":")[1].trim();
-				}
-					
-				
-				if(userAns.equalsIgnoreCase(correct_opt)) {
-					System.out.println("correct ans ");
-					score++;
-				}
-			}
 			
 			Attempt atmt = new Attempt(student_id, quiz_id, score);
 			
@@ -200,28 +165,29 @@ public class QuizDaoimpl {
 		
 		}
 		
-	
-		public void viewScore(int student_id) throws Exception {
+		public ResultSet getQuestions(int quizId) throws Exception {
 
-		    String sql = "select * from attempt where student_id = ?";
+		    String sql =
+		    "select * from questions where quize_id = ?";
+
+		    PreparedStatement stmt =
+		            con.prepareStatement(sql);
+
+		    stmt.setInt(1, quizId);
+
+		    return stmt.executeQuery();
+		}
+		
+		public ResultSet getStudentScore(int studentId) throws Exception {
+
+		    String sql = "SELECT * FROM attempt WHERE student_id = ?";
 
 		    PreparedStatement stmt = con.prepareStatement(sql);
-		    stmt.setInt(1, student_id);
 
-		    ResultSet rs = stmt.executeQuery();
+		    stmt.setInt(1, studentId);
 
-		    boolean found = false;
-
-		    while(rs.next()) {
-		        found = true;
-
-		        System.out.println("------------------");
-		        System.out.println("Quiz Id : " + rs.getInt("quiz_id"));
-		        System.out.println("Score   : " + rs.getInt("score"));
-		    }
-
-		    if(!found) {
-		        System.out.println("No Quiz Attempted Yet");
-		    }
+		    return stmt.executeQuery();
 		}
+
+
 }

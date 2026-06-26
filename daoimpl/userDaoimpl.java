@@ -48,12 +48,9 @@ public class userDaoimpl implements userDao{
 		
 		 int count = stmt.executeUpdate();
 		
-		 if(count > 0) {
-		        System.out.println("Student Registration Successful");
-		        return;
-		    }
-	
-		throw new InvalidInputException("reg failed");
+		 if (stmt.executeUpdate() == 0) {
+	            throw new InvalidInputException("Registration Failed");
+	        }
 		
 	}
 	@Override
